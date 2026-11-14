@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escritório dos Agentes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Rubik:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday, playful: um escritório de pixel art onde cada projeto é um funcionário
+   IDEA a tela de um jogo de gerenciamento visto de cima, com a ficha de cada funcionário embaixo
+   PICTURE o escritório animado: mesas, sofá, café, Supervisor andando entre as mesas
+   COLOUR fundo ameixa escuro, tinta creme, verde trabalhando, areia descansando, coral precisa de você
+   TYPE Pixelify Sans nos títulos + Rubik no texto
+   LAYOUT título curto, escritório largo, contadores; fichas em grade abaixo; no celular tudo empilhado */
+:root{color-scheme:dark;--bg:#251b2a;--panel:#32253a;--line:#4a3a52;--ink:#f6ecdf;--soft:#c9b8c4;--work:#7bd389;--rest:#f2c14e;--need:#ff7a59}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 Rubik,system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:1240px;margin:0 auto;padding:clamp(18px,3vw,36px) max(4vw,16px)}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px 24px;margin-bottom:16px}
+h1{font:700 clamp(32px,5vw,48px)/1.05 "Pixelify Sans",monospace;margin:0;letter-spacing:-.01em}
+.sub{color:var(--soft);margin:6px 0 0;font-size:15px}
+.counts{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:500;white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+.stage{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--line);background:#1a1320;aspect-ratio:360/200}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated;cursor:pointer}
+.tip{position:absolute;left:12px;bottom:10px;background:#000a;padding:4px 10px;border-radius:6px;font-size:13px;color:var(--soft);pointer-events:none}
+.need{margin:16px 0 0;background:color-mix(in srgb,var(--need) 16%,var(--panel));border:1px solid color-mix(in srgb,var(--need) 50%,var(--line));border-radius:12px;padding:12px 16px}
+.need b{color:var(--need)}
+.need ul{margin:6px 0 0;padding-left:20px}
+h2{font:700 26px/1.1 "Pixelify Sans",monospace;margin:28px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:12px}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .2s,transform .2s}
+.card:hover{border-color:var(--soft)}
+.card.sel{border-color:var(--ink);transform:translateY(-2px)}
+.card:focus-visible{outline:3px solid var(--rest);outline-offset:2px}
+.top{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px 10px}
+.top .pill{grid-column:2;justify-self:start;margin-left:0}
+.av{width:30px;height:30px;border-radius:6px;flex:none;display:grid;place-items:center;font:700 14px "Pixelify Sans",monospace;color:#251b2a}
+.nm{font:700 19px/1.1 "Pixelify Sans",monospace}
+.role{color:var(--soft);font-size:14px}
+.pill{margin-left:auto;font-size:13px;font-weight:600;padding:3px 10px;border-radius:999px;color:#251b2a;white-space:nowrap}
+.card dl{margin:10px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:15px}
+.card dt{color:var(--soft)}
+.card dd{margin:0}
+.card a{color:var(--rest)}
+.foot{color:var(--soft);font-size:13px;margin-top:20px}
+.meta{display:grid;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.mrow{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) auto;gap:12px;align-items:center}
+.mrow .nm{font-size:17px}
+.bar{position:relative;height:16px;background:#1a1320;border-radius:4px;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:4px}
+.bar .m5{position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--soft)}
+.val{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:15px;color:var(--soft)}
+.note{color:var(--soft);font-size:14px;margin:8px 0 0}
+.note b{color:var(--ink)}
+@media(max-width:600px){.mrow{grid-template-columns:1fr auto}.mrow .bar{grid-column:1/-1;order:3}}
+@media(max-width:600px){header{align-items:start}.stage{aspect-ratio:360/230}}
+@media(prefers-reduced-motion:reduce){.card{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Escritório dos Agentes</h1>
+    <p class="sub">Cada projeto seu é um funcionário. Toque em alguém para ver o que está fazendo.</p>
+  </div>
+  <div class="counts" id="counts"></div>
+</header>
+<div class="stage"><canvas id="cv" aria-label="Escritório em pixel art com os agentes trabalhando"></canvas><div class="tip" id="tip">Toque num agente</div></div>
+<div class="need" id="need"></div>
+<h2>Meta de monetização no YouTube</h2>
+<div class="meta" id="meta"></div>
+<p class="note" id="live" style="color:var(--work)"></p>
+<p class="note">Degrau 1 (financiamento por fãs): 500 inscritos e 3 milhões de views de Shorts em 90 dias. Degrau 2 (anúncios): 1.000 inscritos e 10 milhões de views de Shorts em 90 dias, que passam a ser <b>20 milhões a partir de 1º/02/2027</b>. Inscritos de cada canal na última coleta.</p>
+<h2>A equipe</h2>
+<div class="grid" id="grid"></div>
+<p class="foot" id="foot"></p>
+</div>
+<script>
+{
+// ===== DADOS (atualizados por Claude quando você pede /painel) =====
+const ATUALIZADO = "14/11/2026, 20h";
+const AG = [
+ {id:"sup",nome:"Supervisor",papel:"Pensa igual ao dono: não aceita nada genérico e confere tudo e todos",estado:"trabalhando",shirt:"#e8e8f0",hair:"#6b6b78",num:"Turno diário às 16h37 · reunião todo domingo",agora:"Conferindo cada vídeo contra os melhores do nicho antes de agendar",prox:"Te chama no WhatsApp quando algo mudar"},
+ {id:"cur",nome:"Curiosômetro",papel:"Curiosidades · YouTube e TikTok",estado:"trabalhando",shirt:"#4cc9f0",hair:"#2b1d14",num:"66 inscritos · 8,5 mil views (08/11)",agora:"Produzindo os vídeos da semana, 2 por dia",prox:"Vídeo longo \"E se a Terra não precisasse de dinheiro?\"",link:"https://claude.ai/artifact/LkRvJVxkxP1kw6qcHCCQPn",linkTxt:"Roteiro do vídeo longo"},
+ {id:"far",nome:"Farmácia por Dentro",papel:"Para quem quer trabalhar em farmácia · YouTube",estado:"trabalhando",shirt:"#7bd389",hair:"#5a3a22",num:"9 inscritos · 5 Shorts (13/11)",agora:"Série \"Por que o remédio é assim?\" e playlists por objetivo",prox:"Postar 1 por dia por 2 semanas e decidir o TikTok",link:"https://claude.ai/artifact/AiV9x6Q2okWAkeUSQgNadx",linkTxt:"Curso de balcão"},
+ {id:"fau",nome:"Faunômetro",papel:"Animais · YouTube",estado:"precisa",shirt:"#f4a261",hair:"#1c1c1c",num:"Canal não apareceu na conta do YouTube (13/11)",agora:"Parado esperando o canal ficar logado no navegador",prox:"Publicar o vídeo 01 (sapo pingo-de-ouro) e os roteiros 02 a 05",pede:"Deixar o canal do Faunômetro logado no navegador (ou me dizer em qual conta Google ele está)"},
+ {id:"qc",nome:"Quanto Custa?",papel:"Dinheiro · canal novo",estado:"descansando",shirt:"#f2c14e",hair:"#3d2b1f",num:"Roteiros 01 a 07 prontos, nada publicado",agora:"Na fila, esperando a vez depois do Curiosômetro",prox:"Produzir e publicar o primeiro vídeo"},
+ {id:"yby",nome:"Ybyrá",papel:"Jogo idle 2D · a Árvore-Mãe",estado:"trabalhando",shirt:"#9b5de5",hair:"#e9c46a",num:"Fase 1 publicada hoje",agora:"Evoluindo a Fase 1 com a alma de Dofus e Huntera",prox:"Próxima atualização: mudou / falta / próxima",link:"https://claude.ai/artifact/AWqrWQGqq6KBFvBxp8sp47",linkTxt:"Jogar a Fase 1"},
+ {id:"dof",nome:"Private Dofus",papel:"Servidor privado no seu PC",estado:"descansando",shirt:"#ef476f",hair:"#2b1d14",num:"Pasta do projeto montada com o Codex",agora:"Em pausa",prox:"Retomar quando você quiser"}
+];
+// ===================================================================
+// ===== NÚMEROS AO VIVO (API pública do YouTube; chave travada para este site) =====
+const YT_KEY="COLE_A_CHAVE_AQUI";
+const CANAIS={cur:"UCB_Xg2zQxGQ9D9UwakZrVog",far:"UCWwTQ8NKDK7MY2Pl5w8zJ9w"};
+const fmt=n=>Number(n).toLocaleString("pt-BR");
+async function aoVivo(){
+ if(!YT_KEY||YT_KEY.startsWith("COLE"))return;
+ try{
+  const r=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${Object.values(CANAIS).join(",")}&key=${YT_KEY}`);
+  const j=await r.json();if(!j.items)return;
+  j.items.forEach(it=>{const id=Object.keys(CANAIS).find(k=>CANAIS[k]===it.id);if(!id)return;const st=it.statistics,a=AG.find(z=>z.id===id),m=META.find(z=>z.id===id);
+   const ins=+st.subscriberCount;a.num=`${fmt(ins)} inscritos · ${fmt(st.viewCount)} views · ${fmt(st.videoCount)} vídeos (ao vivo)`;if(m)m.ins=ins});
+  render();
+  const h=new Date();$("live").textContent=`Números ao vivo do YouTube, atualizados às ${h.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}. Atualiza sozinho a cada 1 hora.`;
+ }catch(e){}
+}
+
+const ST={trabalhando:{t:"Trabalhando",c:"var(--work)"},descansando:{t:"Descansando",c:"var(--rest)"},precisa:{t:"Precisa de você",c:"var(--need)"}};
+const $=id=>document.getElementById(id);
+let sel=null;
+const n=k=>AG.filter(a=>a.estado===k).length;
+const META=[{id:"cur",ins:66},{id:"far",ins:9},{id:"fau",ins:0},{id:"qc",ins:0}];
+function select(id,scroll){sel=id;document.querySelectorAll(".card").forEach(c=>c.classList.toggle("sel",c.dataset.id===id));const a=AG.find(x=>x.id===id);$("tip").textContent=a?`${a.nome}: ${a.agora}`:"Toque num agente";if(scroll&&a){$("c-"+id).scrollIntoView({behavior:"smooth",block:"nearest"})}}
+function render(){
+$("counts").innerHTML=Object.keys(ST).map(k=>`<span class="chip"><span class="dot" style="background:${ST[k].c}"></span>${n(k)} ${ST[k].t.toLowerCase()}</span>`).join("");
+const needs=AG.filter(a=>a.pede);
+$("need").innerHTML=needs.length?`<b>Precisa de você:</b><ul>${needs.map(a=>`<li><strong>${a.nome}:</strong> ${a.pede}</li>`).join("")}</ul>`:"Ninguém está te esperando agora. Pode descansar.";
+$("need").style.display="block";
+$("meta").innerHTML=META.map(m=>{const a=AG.find(z=>z.id===m.id),p=Math.min(100,m.ins/10);const falta=m.ins<500?`faltam ${500-m.ins} p/ 500`:`faltam ${1000-m.ins} p/ 1.000`;return`<div class="mrow"><span class="nm">${a.nome}</span><div class="bar" title="${m.ins} de 1.000"><i style="width:${Math.max(p,.8)}%;background:${a.shirt}"></i><span class="m5"></span></div><span class="val">${m.ins} · ${falta}</span></div>`}).join("");
+$("grid").innerHTML=AG.map(a=>`<article class="card" tabindex="0" id="c-${a.id}" data-id="${a.id}">
+ <div class="top"><span class="av" style="background:${a.shirt}">${a.nome[0]}</span><div><div class="nm">${a.nome}</div><div class="role">${a.papel}</div></div><span class="pill" style="background:${ST[a.estado].c}">${ST[a.estado].t}</span></div>
+ <dl><dt>Números</dt><dd>${a.num}</dd><dt>Agora</dt><dd>${a.agora}</dd><dt>Próximo</dt><dd>${a.prox}</dd>${a.link?`<dt>Abrir</dt><dd><a href="${a.link}" target="_blank" rel="noopener">${a.linkTxt}</a></dd>`:""}</dl></article>`).join("");
+document.querySelectorAll(".card").forEach(c=>{c.classList.toggle("sel",c.dataset.id===sel);c.onclick=()=>select(c.dataset.id);c.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(c.dataset.id)}}});
+}
+render();aoVivo();setInterval(aoVivo,3600000);
+$("foot").textContent=`Situação dos agentes: ${ATUALIZADO}. Os números dos canais vêm ao vivo do YouTube.`;
+
+// ===== ESCRITÓRIO =====
+const W=360,H=200,cv=$("cv"),ctx=cv.getContext("2d");
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+let s=1,VH=H;
+function fit(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);s=cv.width/W;VH=cv.height/s}
+new ResizeObserver(fit).observe(cv);fit();
+const R=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x*s),Math.round(y*s),Math.ceil(w*s),Math.ceil(h*s))};
+const WALL=52;
+const COLS=[20,86,152],ROWS=[80,142];
+const desks=AG.slice(1).map((a,i)=>({id:a.id,x:COLS[i%3],y:ROWS[i/3|0]}));
+desks.unshift({id:"sup",x:214,y:80,boss:true});
+const D=Object.fromEntries(desks.map(d=>[d.id,d]));
+const seat=d=>({x:d.x+11,y:d.y+5}), front=d=>({x:d.x+11,y:d.y+24});
+const SOFA=[{x:286,y:166},{x:304,y:166},{x:322,y:166}],COFFEE={x:330,y:92};
+let seed=7;const rnd=()=>(seed=seed*16807%2147483647)/2147483647;
+const chars=AG.map((a,i)=>{const d=D[a.id];const c={a,x:0,y:0,path:[],wait:0,sit:false,face:1,t:rnd()*9,next:20+rnd()*40,tour:0,sofa:0};
+ let p=a.estado==="trabalhando"?seat(d):a.estado==="precisa"?front(d):SOFA[0];
+ if(a.estado==="descansando"){c.sofa=AG.filter((b,j)=>j<i&&b.estado==="descansando").length%3;p=SOFA[c.sofa]}
+ if(a.id==="sup"){p=front(D.cur);c.wait=3}
+ c.x=p.x;c.y=p.y;c.sit=a.estado!=="precisa"&&a.id!=="sup";return c});
+const AISLE=[116,184];
+function go(c,t){const ay=Math.abs(c.y-AISLE[0])<Math.abs(c.y-AISLE[1])?AISLE[0]:AISLE[1];c.path=[{x:c.x,y:ay},{x:t.x,y:ay},t];c.sit=false;c.goal=t}
+function brain(c,dt){
+ const a=c.a,d=D[a.id];
+ if(c.path.length)return;
+ if(c.wait>0){c.wait-=dt;return}
+ if(a.id==="sup"){const order=["cur","far","fau","qc","yby","dof","sup"];c.tour=(c.tour+1)%order.length;const id=order[c.tour];if(id==="sup"){go(c,seat(d));c.wait=6;c.arrSit=true}else{go(c,front(D[id]));c.wait=3.5;c.arrSit=false;c.talk=id}return}
+ if(a.estado==="trabalhando"){if(c.atCoffee){c.atCoffee=false;go(c,seat(d));c.arrSit=true;return}c.next-=dt;if(c.next<0){c.next=35+rnd()*50;c.atCoffee=true;go(c,COFFEE);c.wait=4;c.arrSit=false}return}
+ if(a.estado==="descansando"){c.next-=dt;if(c.next<0){c.next=14+rnd()*14;if(c.atCoffee){c.atCoffee=false;go(c,SOFA[c.sofa]);c.arrSit=true}else{c.atCoffee=true;go(c,COFFEE);c.wait=5;c.arrSit=false}}return}
+}
+function move(c,dt){if(!c.path.length)return;const p=c.path[0],sp=26*dt,dx=p.x-c.x,dy=p.y-c.y,l=Math.hypot(dx,dy);if(Math.abs(dx)>.5)c.face=dx>0?1:-1;if(l<=sp){c.x=p.x;c.y=p.y;c.path.shift();if(!c.path.length){c.sit=!!c.arrSit;if(c.a.id!=="sup"||!c.arrSit)c.talkT=c.a.id==="sup"?3:0}}else{c.x+=dx/l*sp;c.y+=dy/l*sp}}
+function sky(h){if(h>=6&&h<17)return["#8fd3ff","#c7ecff"];if(h>=17&&h<19)return["#ff9e7a","#ffd29e"];return["#141a3a","#2a2f5e"]}
+function room(t){
+ const h=new Date().getHours(),night=h<6||h>=19;
+ R(0,0,W,VH,"#3b2a33");
+ for(let y=WALL;y<VH;y+=10)for(let x=0;x<W;x+=20)R(x+((y/10)%2?10:0),y,19,9,(x/20+y/10)%2?"#8a5a3c":"#93633f");
+ R(0,WALL,W,2,"#5c3b28");
+ R(0,0,W,WALL,"#5b4a6e");R(0,WALL-6,W,6,"#4a3b5c");
+ [[16,8],[96,8]].forEach(([x,y])=>{const[a,b]=sky(h);R(x,y,64,32,"#2d2238");R(x+3,y+3,58,26,a);R(x+3,y+17,58,12,b);if(night){for(let i=0;i<7;i++)R(x+6+((i*23)%52),y+5+((i*11)%10),1,1,(Math.floor(t*2+i)%3)?"#fff":"#ffe9a8")}else{R(x+40,y+7,8,8,"#fff3b0")}R(x+31,y+3,2,26,"#2d2238");R(x+3,y+15,58,2,"#2d2238")});
+ R(190,8,62,34,"#e9e3d8");R(190,8,62,3,"#c9c1b2");R(194,15,20,2,"#ef476f");R(194,21,40,2,"#4cc9f0");R(194,27,30,2,"#7bd389");R(194,33,22,2,"#f2c14e");R(238,30,10,8,"#f2c14e");
+ R(168,12,12,12,"#2d2238");R(170,14,8,8,"#f6ecdf");const m=(t/4)%8;R(173,17,1,-2,"#2d2238");R(174,18,1+Math.round(m%3),1,"#2d2238");
+ R(262,26,86,6,"#6d4c3d");[["#7bd389",268],["#ef476f",282],["#4cc9f0",292],["#f2c14e",304]].forEach(([c,x])=>R(x,16,8,10,c));
+ R(268,WALL+92,90,40,"#7a3b58");R(272,WALL+96,82,32,"#8f4a6a");
+ R(276,150,66,8,"#4a6fa5");R(276,158,66,12,"#5b82bd");R(272,150,6,22,"#3e5f8f");R(340,150,6,22,"#3e5f8f");
+ R(326,62,16,26,"#3a3a46");R(328,66,12,8,"#1d1d24");R(331,70,6,3,night?"#ff7a59":"#7bd389");R(330,80,8,6,"#e9e3d8");
+ [[8,150],[350,56]].forEach(([x,y])=>{R(x-4,y+10,10,10,"#b5651d");R(x-6,y,4,10,"#2f8f5b");R(x,y-4,4,14,"#3aa66b");R(x+3,y+1,5,9,"#2f8f5b")});
+ if(night){ctx.fillStyle="rgba(10,6,30,.28)";ctx.fillRect(0,0,cv.width,cv.height)}
+}
+function desk(d,t,on){
+ const bx=d.boss?4:0;
+ R(d.x-bx,d.y,34+bx*2,13,"#c08a5b");R(d.x-bx,d.y,34+bx*2,3,"#d9a571");R(d.x-bx,d.y+13,34+bx*2,4,"#7b5234");R(d.x-bx+1,d.y+17,3,6,"#5c3b28");R(d.x+bx+30,d.y+17,3,6,"#5c3b28");
+ R(d.x+19,d.y-10,13,10,"#2d2d38");R(d.x+24,d.y,3,2,"#2d2d38");
+ if(on){R(d.x+20,d.y-9,11,8,"#123a2e");for(let i=0;i<3;i++){const w=3+((Math.floor(t*3)+i*5)%7);R(d.x+21,d.y-8+i*2.4,w,1,"#7bd389")}ctx.fillStyle="rgba(123,211,137,.12)";ctx.fillRect((d.x+6)*s,(d.y-16)*s,20*s,16*s)}
+ else R(d.x+20,d.y-9,11,8,"#1a1a22");
+ R(d.x+2,d.y+3,7,4,"#efe7da");R(d.x+3,d.y+4,5,1,"#9aa");
+ if(d.boss){R(d.x-2,d.y+4,6,5,"#ff7a59");R(d.x-1,d.y+2,4,2,"#ff7a59")}
+}
+function person(c,t){
+ const a=c.a,x=c.x,y=c.y,walk=c.path.length>0,ph=walk?Math.floor(t*8)%2:0,top=y-17;
+ if(c.sit&&a.estado!=="descansando"){R(x-6,y-9,12,11,"#3a3a46");R(x-5,y-11,10,3,"#4a4a58")}
+ if(!c.sit){R(x-3,y-4,2,4+(ph?-1:0),"#2d2a3a");R(x+1,y-4,2,4+(ph?0:-1),"#2d2a3a");R(x-4,y-1+(ph?-1:0),3,1,"#1a1a22");R(x+1,y-1+(ph?0:-1),3,1,"#1a1a22")}
+ else if(a.estado==="descansando"){R(x-3,y-4,6,3,"#2d2a3a");R(x-4,y-1,3,2,"#1a1a22");R(x+1,y-1,3,2,"#1a1a22")}
+ const bob=(!walk&&!c.sit&&a.estado==="precisa")?Math.round(Math.sin(t*6)):0;
+ R(x-4,top+7+bob,8,7,a.shirt);R(x-4,top+7+bob,8,1,"rgba(255,255,255,.25)");
+ const typing=c.sit&&a.estado==="trabalhando"&&!walk;
+ const arm=typing?(Math.floor(t*10)%2):0;
+ R(x-5,top+8+bob+arm,2,5,a.shirt);R(x+3,top+8+bob+(typing?1-arm:0),2,5,a.shirt);R(x-5,top+13+bob+arm,2,1,"#f1c7a3");R(x+3,top+13+bob+(typing?1-arm:0),2,1,"#f1c7a3");
+ R(x-3,top+bob,6,7,"#f1c7a3");R(x-3,top-1+bob,6,3,a.hair);R(x+(c.face>0?-3:2),top+bob,1,4,a.hair);
+ const blink=Math.floor(t*1.3+c.t)%5===0&&(t*1.3+c.t)%1<.15;
+ if(!blink){R(x-2+(c.face>0?1:0),top+3+bob,1,1,"#1a1a22");R(x+1+(c.face>0?1:0),top+3+bob,1,1,"#1a1a22")}
+ if(a.estado==="descansando"&&c.sit){const z=(t+c.t)%3;ctx.fillStyle="#f6ecdf";ctx.font=`${Math.max(6,5*s)}px "Pixelify Sans",monospace`;ctx.fillText("z",(x+4+z*2)*s,(top-2-z*3)*s)}
+ if(a.id==="sup"){R(x-1,top+8+bob,2,4,"#ff7a59")}
+ if(a.estado==="precisa"&&!walk){const by=top-11+Math.round(Math.sin(t*4)*1.5);R(x-4,by,9,9,"#ff7a59");R(x-1,by+9,2,2,"#ff7a59");R(x,by+2,1,4,"#fff");R(x,by+7,1,1,"#fff")}
+ if(a.id==="sup"&&c.talkT>0){R(x+5,top-9,14,8,"#f6ecdf");R(x+6,top-1,2,2,"#f6ecdf");for(let i=0;i<3;i++)R(x+8+i*3,top-6,2,2,(Math.floor(t*3)%3)>=i?"#251b2a":"#c9b8c4")}
+ if(sel===a.id){const ay=top-(a.estado==="precisa"?16:8)-Math.round(Math.abs(Math.sin(t*3))*2);R(x-2,ay,5,2,"#fff");R(x-1,ay+2,3,1,"#fff");R(x,ay+3,1,1,"#fff")}
+}
+function label(d){if(5*s<10)return;const a=AG.find(z=>z.id===d.id);ctx.font=`500 ${Math.round(6*s)}px "Pixelify Sans",monospace`;ctx.textAlign="center";const tx=(d.x+17)*s,ty=(d.y+30)*s,w=ctx.measureText(a.nome).width+6*s;ctx.fillStyle="rgba(37,27,42,.75)";ctx.fillRect(tx-w/2,ty-6.5*s,w,8.5*s);ctx.fillStyle=a.estado==="precisa"?"#ff9f85":"#f6ecdf";ctx.fillText(a.nome,tx,ty);ctx.textAlign="left"}
+let last=performance.now(),T=0;
+function frame(now){
+ const dt=Math.min(.05,(now-last)/1000);last=now;if(!reduce)T+=dt;
+ ctx.imageSmoothingEnabled=false;
+ chars.forEach(c=>{if(!reduce){brain(c,dt);move(c,dt)}if(c.talkT>0)c.talkT-=dt});
+ room(T);
+ const list=[...desks.map(d=>({k:d.y+14,f:()=>{const ow=chars.find(c=>c.a.id===d.id);desk(d,T,ow.sit&&!ow.path.length&&Math.hypot(ow.x-seat(d).x,ow.y-seat(d).y)<2)}})),...chars.map(c=>({k:c.y,f:()=>person(c,T)}))].sort((p,q)=>p.k-q.k);
+ list.forEach(o=>o.f());
+ desks.forEach(label);
+ requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+cv.addEventListener("click",e=>{const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*VH;let best=null,bd=14;chars.forEach(c=>{const d=Math.hypot(c.x-x,c.y-9-y);if(d<bd){bd=d;best=c}});if(!best)desks.forEach(d=>{if(x>d.x-4&&x<d.x+38&&y>d.y-14&&y<d.y+30)best=chars.find(c=>c.a.id===d.id)});if(best)select(best.a.id,true)});
+}
+</script>
+</body>
+</html>
